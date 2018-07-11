@@ -1,0 +1,86 @@
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline author:t
+#+OPTIONS: broken-links:nil c:nil creator:nil d:(not "LOGBOOK") date:t e:t
+#+OPTIONS: email:nil f:t inline:t num:t p:nil pri:nil prop:nil stat:t tags:t
+#+OPTIONS: tasks:t tex:t timestamp:t title:t toc:t todo:t |:t
+#+TITLE: IMG12 - Qemu Image Copier
+#+DATE: <2018-07-11 sze>
+#+AUTHOR: Gergely Szabo
+#+EMAIL: gergely.szabo@origoss.com
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport
+#+CREATOR: Emacs 25.2.2 (Org mode 9.1.13)
+
+* Introduction
+  
+  ~img12~ is a very simple tool to convert KVM image files to LVM volumes. 
+
+  It performs the following operations:
+  
+  1. Gets the fully allocated image size (via ~qemu-img measure~).
+  2. Removes the logical volume with the given name if it exists (via ~lvremove~).
+  3. Creates a new logical volume with the given name and the appropriate size
+     (via ~lvcreate~).
+  4. Copies the image to the newly created logical volume (via ~qemu-img convert~).
+
+  The tool can copy the same image to multiple logical volumes in parallel.
+
+* Installation
+
+** With ~go get~
+
+   If you have a go build toolchain installed, you can install ~img12~ on your
+   laptop with the following command:
+
+   #+BEGIN_SRC bash :results verbatim
+     go get -u github.com/origoss/img12
+     sudo ln -s $GOPATH/bin/img12 /usr/local/sbin
+   #+END_SRC
+
+** Static binary
+** Docker
+
+* Usage
+  
+  The following example creates a new logical volume ~test~ in the volume group
+  ~ubuntu-vg~ with the content of the ~test.img~ image file.
+
+  #+BEGIN_SRC bash :results verbatim :dir /sudo:localhost:/root :exports both
+    img12 copy test.img ubuntu-vg/test
+  #+END_SRC
+
+  #+RESULTS:
+  : copy called
+  : lvremove -vf ubuntu-vg/test
+  :   Failed to find logical volume "ubuntu-vg/test"
+  : qemu-img measure test.img
+  : lvcreate -L 31457280000b -n test ubuntu-vg
+  :   Logical volume "test" created.
+  : qemu-img convert test.img -O raw /dev/ubuntu-vg/test
+  : test.img copied to ubuntu-vg/test (1m32.057337401s)
+
+  It is also possible to create multiple logical volumes from the same image
+  file:
+
+  #+BEGIN_SRC bash :results verbatim :dir /sudo:localhost:/root :exports both
+    img12 copy test.img ubuntu-vg/test1 ubuntu-vg/test2
+  #+END_SRC
+
+  #+RESULTS:
+  #+begin_example
+  copy called
+  lvremove -vf ubuntu-vg/test1
+  lvremove -vf ubuntu-vg/test2
+    Failed to find logical volume "ubuntu-vg/test1"
+  qemu-img measure test.img
+    Failed to find logical volume "ubuntu-vg/test2"
+  qemu-img measure test.img
+  lvcreate -L 31457280000b -n test1 ubuntu-vg
+  lvcreate -L 31457280000b -n test2 ubuntu-vg
+    Logical volume "test2" created.
+  qemu-img convert test.img -O raw /dev/ubuntu-vg/test2
+    Logical volume "test1" created.
+  qemu-img convert test.img -O raw /dev/ubuntu-vg/test1
+  test.img copied to ubuntu-vg/test2 (2m52.972566144s)
+  test.img copied to ubuntu-vg/test1 (2m53.712140615s)
+  #+end_example
