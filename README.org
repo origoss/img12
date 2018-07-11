@@ -38,6 +38,10 @@
    #+END_SRC
 
 ** Static binary
+   
+   You can download a statically compiled binary for the amd64 Linux
+   architecture from here:
+   [[https://github.com/origoss/img12/releases/download/v0.1.0/img12]]
 
 * Usage
   
