@@ -38,7 +38,6 @@
    #+END_SRC
 
 ** Static binary
-** Docker
 
 * Usage
   
@@ -84,3 +83,25 @@
   test.img copied to ubuntu-vg/test2 (2m52.972566144s)
   test.img copied to ubuntu-vg/test1 (2m53.712140615s)
   #+end_example
+
+* Build
+
+** Static binary
+   Static binary can be built with the following command:
+
+   #+BEGIN_SRC bash :results verbatim :exports both
+     docker container run             \
+            --volume "$PWD":/output   \
+            --rm                      \
+            --env CGO_ENABLED=0       \
+            --env GOOS=linux          \
+            --env GOARCH=amd64        \
+            golang:1.10.3 sh -c "
+     go get -d github.com/origoss/img12
+     go build -a -ldflags '-extldflags \"static\"' -o /output/img12 github.com/origoss/img12
+     chown $(id -u):$(id -g) /output/img12
+            "
+   #+END_SRC
+
+   #+RESULTS:
+
